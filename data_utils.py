@@ -13,6 +13,13 @@ MOVIE_LINES_FILE = 'movie_lines.txt'
 MOVIE_CONVOS_FILE = 'movie_conversations.txt'
 VOCAB_COUNT_THRESHOLD = 2
 
+PAD_ID = 0
+START_ID = 1
+END_ID = 2
+UNK_ID = 3
+
+BUCKETS = [(19, 19), (28, 28), (33, 33), (40, 43), (50, 53), (60, 63)]
+
 
 def get_lineid_content():
     lineid_content = {}
@@ -142,6 +149,7 @@ def construct_vocab_file(filename):
     vocab_sorted = sorted(
         vocab.items(), key=operator.itemgetter(1), reverse=True)
     with open(output_file, 'w+') as f:
+        f.write('<pad>' + '\n')
         f.write('<unk>' + '\n')
         f.write('<s>' + '\n')
         f.write('</s>' + '\n')
@@ -156,6 +164,45 @@ def construct_vocab_file(filename):
             vocab_count += 1
 
 
+def initialize_vocab(vocab_path):
+    rev_vocab = []
+
+    with open(vocab_path, 'r') as f:
+        rev_vocab.extend(f.readlines())
+
+    rev_vocab = [line.strip() for line in rev_vocab]
+    vocab = dict([(x, y) for (y, x) in enumerate(rev_vocab)])
+
+    return vocab, rev_vocab
+
+
+def sentence_to_token_ids(sentence, vocab):
+    return [vocab.get(token, UNK_ID) for token in basic_tokenizer(sentence)]
+
+
+def data_to_token_ids(src_path,
+                      tgt_path,
+                      vocab_path,
+                      type):
+    vocab, _ = initialize_vocab(vocab_path)
+    with open(src_path, 'r') as src_file:
+        with open(tgt_path, 'w+') as tgt_file:
+            for line in src_file:
+                # Add START_ID to output
+                if type == 'output':
+                    token_ids = [START_ID]
+                else:
+                    token_ids = []
+
+                token_ids.extend(sentence_to_token_ids(line, vocab))
+
+                # Add END_ID to output
+                if type == 'output':
+                    token_ids.append(END_ID)
+                tgt_file.write(" ".join([str(token_id)
+                                         for token_id in token_ids]) + "\n")
+
+
 def data_preprocessing():
     lineid_content = get_lineid_content()
     print('Read movie_lines.txt file complete...')
@@ -168,5 +215,33 @@ def data_preprocessing():
     construct_vocab_file('train.ou')
 
 
+def data_tokenizing():
+    data_to_token_ids(src_path=os.path.join(DATA_PATH, 'train.in'),
+                      tgt_path=os.path.join(DATA_PATH, 'train_ids.in'),
+                      vocab_path=os.path.join(DATA_PATH, 'vocab.in'),
+                      type='input')
+    data_to_token_ids(src_path=os.path.join(DATA_PATH, 'dev.in'),
+                      tgt_path=os.path.join(DATA_PATH, 'dev_ids.in'),
+                      vocab_path=os.path.join(DATA_PATH, 'vocab.in'),
+                      type='input')
+    data_to_token_ids(src_path=os.path.join(DATA_PATH, 'test.in'),
+                      tgt_path=os.path.join(DATA_PATH, 'test_ids.in'),
+                      vocab_path=os.path.join(DATA_PATH, 'vocab.in'),
+                      type='input')
+    data_to_token_ids(src_path=os.path.join(DATA_PATH, 'train.ou'),
+                      tgt_path=os.path.join(DATA_PATH, 'train_ids.ou'),
+                      vocab_path=os.path.join(DATA_PATH, 'vocab.ou'),
+                      type='output')
+    data_to_token_ids(src_path=os.path.join(DATA_PATH, 'dev.ou'),
+                      tgt_path=os.path.join(DATA_PATH, 'dev_ids.ou'),
+                      vocab_path=os.path.join(DATA_PATH, 'vocab.ou'),
+                      type='output')
+    data_to_token_ids(src_path=os.path.join(DATA_PATH, 'test.ou'),
+                      tgt_path=os.path.join(DATA_PATH, 'test_ids.ou'),
+                      vocab_path=os.path.join(DATA_PATH, 'vocab.ou'),
+                      type='output')
+
+
 if __name__ == '__main__':
     data_preprocessing()
+    data_tokenizing()
