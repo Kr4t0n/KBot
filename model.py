@@ -15,7 +15,6 @@ class Model(object):
     def __init__(self,
                  hparams,
                  buckets,
-                 batch_size,
                  forward_only=False):
         """ Create the model class"""
 
@@ -26,7 +25,7 @@ class Model(object):
         self.max_gradient_norm = hparams.max_gradient_norm
         self.cell_type = hparams.cell_type
         self.num_samples = hparams.num_samples
-        self.batch_size = batch_size
+        self.batch_size = hparams.batch_size
         self.buckets = buckets
         self.learning_rate = tf.Variable(
             float(hparams.learning_rate), trainable=False)
