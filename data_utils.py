@@ -14,9 +14,10 @@ MOVIE_CONVOS_FILE = 'movie_conversations.txt'
 VOCAB_COUNT_THRESHOLD = 2
 
 PAD_ID = 0
-START_ID = 1
-END_ID = 2
-UNK_ID = 3
+UNK_ID = 1
+START_ID = 2
+END_ID = 3
+
 
 BUCKETS = [(19, 19), (28, 28), (33, 33), (40, 43), (50, 53), (60, 63)]
 
