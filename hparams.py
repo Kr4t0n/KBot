@@ -11,7 +11,6 @@ from collections import namedtuple
     self.tgt_vocab_size = hparams.tgt_vocab_size
 """
 
-
 # Model Hyperparameter
 tf.flags.DEFINE_integer("hidden_layer_size", 512,
                         "Number of cells in each layer")
