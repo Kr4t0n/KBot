@@ -9,6 +9,7 @@ import re
 import operator
 
 DATA_PATH = 'data/'
+CPT_DIR = 'checkpoints/'
 MOVIE_LINES_FILE = 'movie_lines.txt'
 MOVIE_CONVOS_FILE = 'movie_conversations.txt'
 VOCAB_COUNT_THRESHOLD = 2
@@ -168,7 +169,7 @@ def construct_vocab_file(filename):
 def initialize_vocab(vocab_path):
     rev_vocab = []
 
-    with open(vocab_path, 'r') as f:
+    with open(os.path.join(DATA_PATH + vocab_path), 'r') as f:
         rev_vocab.extend(f.readlines())
 
     rev_vocab = [line.strip() for line in rev_vocab]
@@ -205,8 +206,8 @@ def data_to_token_ids(src_path,
 
 
 def load_data(encoder_path, decoder_path, max_size=None):
-    encoder_file = open(encoder_path, 'r')
-    decoder_file = open(decoder_path, 'r')
+    encoder_file = open(os.path.join(DATA_PATH, encoder_path), 'r')
+    decoder_file = open(os.path.join(DATA_PATH, decoder_path), 'r')
     encoder, decoder = encoder_file.readline(), decoder_file.readline()
     data_sets = [[] for _ in BUCKETS]
     size = 0
@@ -223,6 +224,13 @@ def load_data(encoder_path, decoder_path, max_size=None):
         encoder, decoder = encoder_file.readline(), decoder_file.readline()
 
     return data_sets
+
+
+def get_vocab_size(vocab_path):
+    with open(os.path.join(DATA_PATH, vocab_path), 'r') as f:
+        vocab_size = sum(1 for _ in f)
+
+    return vocab_size
 
 
 def data_preprocessing():
