@@ -25,6 +25,9 @@ tf.flags.DEFINE_integer("batch_size", 64, "Batch size during training")
 tf.flags.DEFINE_integer(
     "num_samples", 512, "Number of samples to calculate loss")
 
+tf.flags.DEFINE_integer("steps_per_checkpoint", 100,
+                        "How many training steps to do per checkpoint.")
+
 FLAGS = tf.flags.FLAGS
 
 HParams = namedtuple(
@@ -37,12 +40,13 @@ HParams = namedtuple(
         "learning_rate_decay_factor",
         "max_gradient_norm",
         "num_layers",
-        "num_samples"
+        "num_samples",
+        "steps_per_checkpoint"
     ])
 
 
 def create_hparams():
-    return HParams(
+    return tf.contrib.training.HParams(
         batch_size=FLAGS.batch_size,
         cell_type=FLAGS.cell_type,
         hidden_layer_size=FLAGS.hidden_layer_size,
@@ -50,4 +54,5 @@ def create_hparams():
         learning_rate_decay_factor=FLAGS.learning_rate_decay_factor,
         max_gradient_norm=FLAGS.max_gradient_norm,
         num_layers=FLAGS.num_layers,
-        num_samples=FLAGS.num_samples)
+        num_samples=FLAGS.num_samples,
+        steps_per_checkpoint=FLAGS.steps_per_checkpoint)
