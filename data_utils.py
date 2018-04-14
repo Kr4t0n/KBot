@@ -204,6 +204,27 @@ def data_to_token_ids(src_path,
                                          for token_id in token_ids]) + "\n")
 
 
+def load_data(encoder_path, decoder_path, max_size=None):
+    encoder_file = open(encoder_path, 'r')
+    decoder_file = open(decoder_path, 'r')
+    encoder, decoder = encoder_file.readline(), decoder_file.readline()
+    data_sets = [[] for _ in BUCKETS]
+    size = 0
+
+    while encoder and decoder and (not max_size or size < max_size):
+        encoder_ids = [int(id) for id in encoder.split()]
+        decoder_ids = [int(id) for id in decoder.split()]
+
+        for bucket_id, (encoder_size, decoder_size) in enumerate(BUCKETS):
+            if len(encoder_ids) < encoder_size and \
+                    len(decoder_ids) < decoder_size:
+                data_sets[bucket_id].append([encoder_ids, decoder_ids])
+                break
+        encoder, decoder = encoder_file.readline(), decoder_file.readline()
+
+    return data_sets
+
+
 def data_preprocessing():
     lineid_content = get_lineid_content()
     print('Read movie_lines.txt file complete...')
