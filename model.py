@@ -198,11 +198,9 @@ class Model(object):
             encoder_inputs.append(list(reversed(encoder_input + encoder_pad)))
 
             # Decoder inputs are padded
-            decoder_pad = [data_util.START_ID] + \
-                decoder_input + \
-                [data_util.PAD_ID] * \
-                (decoder_size - len(decoder_input) - 1)
-            decoder_inputs.append(decoder_pad)
+            decoder_pad = [data_util.PAD_ID] * \
+                (decoder_size - len(decoder_inputs))
+            decoder_inputs.append(decoder_input + decoder_pad)
 
         # Reconstruct the input to become batch major
         batch_encoder_inputs, batch_decoder_inputs, batch_weights = [], [], []
