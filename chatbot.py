@@ -20,7 +20,6 @@ def create_seq2seq_model(session, hparams, forward_only):
         buckets=data_utils.BUCKETS,
         forward_only=forward_only)
 
-    print(os.path.dirname(data_utils.CPT_DIR + 'checkpoint'))
     ckpt = tf.train.get_checkpoint_state(
         os.path.dirname(data_utils.CPT_DIR + 'checkpoint'))
     if ckpt and ckpt.model_checkpoint_path:
@@ -123,11 +122,11 @@ def train(hparams):
             current_step += 1
 
             if current_step % hparams.steps_per_checkpoint == 0:
-                print("Global step %d: loss %.6f, learning rate %.4f, step time %.2f" %
-                      (model.global_step.eval(),
-                       loss,
-                       model.learning_rate.eval(),
-                       time.time() - start_time))
+                print("Global step {}: loss {}, learning rate {}, step time {}".format(
+                    model.global_step.eval(),
+                    loss,
+                    model.learning_rate.eval(),
+                    step_time))
 
                 if len(previous_losses) > 2 and \
                         loss > max(previous_losses[-3:]):
@@ -138,20 +137,20 @@ def train(hparams):
                 model.saver.save(sess, cpt_path, global_step=model.global_step)
                 step_time, loss = 0.0, 0.0
 
-                for bucket_id in range(len(data_utils.BUCKETS)):
-                    encoder_inputs, decoder_inputs, target_weights = \
-                        model.get_batch(dev_sets, bucket_id)
-                    _, eval_loss, _ = \
-                        model.run_step(session=sess,
-                                       encoder_inputs=encoder_inputs,
-                                       decoder_inputs=decoder_inputs,
-                                       target_weights=target_weights,
-                                       bucket_id=bucket_id,
-                                       forward_only=True)
-                    print("Eval: bucket %d, loss %.6f" %
-                          (bucket_id, eval_loss))
-
-                    sys.stdout.flush()
+                if current_step % (10 * hparams.steps_per_checkpoint) == 0:
+                    for bucket_id in range(len(data_utils.BUCKETS)):
+                        encoder_inputs, decoder_inputs, target_weights = \
+                            model.get_batch(dev_sets, bucket_id)
+                        _, eval_loss, _ = \
+                            model.run_step(session=sess,
+                                           encoder_inputs=encoder_inputs,
+                                           decoder_inputs=decoder_inputs,
+                                           target_weights=target_weights,
+                                           bucket_id=bucket_id,
+                                           forward_only=True)
+                        print("Eval: bucket {}: loss {}".format(
+                            bucket_id, eval_loss))
+                        sys.stdout.flush()
 
 
 def chat(hparams):
