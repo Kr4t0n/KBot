@@ -6,24 +6,24 @@ import os
 import sys
 import random
 import time
-import argparse
 import numpy as np
 import tensorflow as tf
-from tensorflow.python.platform import gfile
 
-from . import model
-from . import data_utils
-from . import chatbot_hparams
+import model
+import data_utils
+import chatbot_hparams
 
 
-def create_seq2seq_model(session, hparams, forword_only):
+def create_seq2seq_model(session, hparams, forward_only):
     seq2seq_model = model.Model(
         hparams=hparams,
         buckets=data_utils.BUCKETS,
-        forword_only=forword_only)
+        forward_only=forward_only)
 
-    ckpt = tf.train.get_checkpoint_state(data_utils.CPT_DIR)
-    if ckpt and gfile.Exists(ckpt.model_checkpoint_path):
+    print(os.path.dirname(data_utils.CPT_DIR + 'checkpoint'))
+    ckpt = tf.train.get_checkpoint_state(
+        os.path.dirname(data_utils.CPT_DIR + 'checkpoint'))
+    if ckpt and ckpt.model_checkpoint_path:
         print("Loading model parameters from {}...".format(
             ckpt.model_checkpoint_path))
         seq2seq_model.saver.restore(session, ckpt.model_checkpoint_path)
@@ -76,11 +76,9 @@ def get_predicted_sentence(session,
 
 
 def get_hparams():
-    hparams = chatbot_hparams.create_hparams
-    src_vocab_size = data_utils.get_vocab_size(
-        data_utils.DATA_PATH + 'vocab.in')
-    tgt_vocab_size = data_utils.get_vocab_size(
-        data_utils.DATA_PATH + 'vocab.ou')
+    hparams = chatbot_hparams.create_hparams()
+    src_vocab_size = data_utils.get_vocab_size('vocab.in')
+    tgt_vocab_size = data_utils.get_vocab_size('vocab.ou')
     hparams.add_hparam("src_vocab_size", src_vocab_size)
     hparams.add_hparam("tgt_vocab_size", tgt_vocab_size)
 
@@ -89,7 +87,9 @@ def get_hparams():
 
 def train(hparams):
     with tf.Session() as sess:
-        model = create_seq2seq_model(sess, hparams, forword_only=False)
+        model = create_seq2seq_model(session=sess,
+                                     hparams=hparams,
+                                     forward_only=False)
 
         train_sets = data_utils.load_data('train_ids.in', 'train_ids.ou')
         dev_sets = data_utils.load_data('dev_ids.in', 'dev_ids.ou')
@@ -117,15 +117,15 @@ def train(hparams):
                                              decoder_inputs=decoder_inputs,
                                              target_weights=target_weights,
                                              bucket_id=bucket_id,
-                                             forword_only=False)
+                                             forward_only=False)
             step_time += time.time() - start_time
             loss += step_loss / hparams.steps_per_checkpoint
             current_step += 1
 
             if current_step % hparams.steps_per_checkpoint == 0:
                 print("Global step %d: loss %.6f, learning rate %.4f, step time %.2f" %
-                      (loss,
-                       model.global_step.eval(),
+                      (model.global_step.eval(),
+                       loss,
                        model.learning_rate.eval(),
                        time.time() - start_time))
 
@@ -156,7 +156,7 @@ def train(hparams):
 
 def chat(hparams):
     with tf.Session() as sess:
-        model = create_seq2seq_model(sess, hparams, forword_only=True)
+        model = create_seq2seq_model(sess, hparams, forward_only=True)
         model.batch_size = 1
 
         src_vocab, _ = data_utils.initialize_vocab("vocab.in")
@@ -182,13 +182,10 @@ def chat(hparams):
 
 def chatbot():
     hparams = get_hparams()
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--mode', choices={'train', 'chat'}, default='train')
-    args = parser.parse_args()
 
-    if args.mode == 'train':
+    if hparams.mode == 'train':
         train(hparams)
-    elif args.mode == 'chat':
+    elif hparams.mode == 'chat':
         chat(hparams)
 
 

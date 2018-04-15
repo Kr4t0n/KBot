@@ -27,6 +27,7 @@ tf.flags.DEFINE_integer(
 
 tf.flags.DEFINE_integer("steps_per_checkpoint", 100,
                         "How many training steps to do per checkpoint.")
+tf.flags.DEFINE_string("mode", "train", "Chatbot running mode")
 
 FLAGS = tf.flags.FLAGS
 
@@ -39,6 +40,7 @@ HParams = namedtuple(
         "learning_rate",
         "learning_rate_decay_factor",
         "max_gradient_norm",
+        "mode",
         "num_layers",
         "num_samples",
         "steps_per_checkpoint"
@@ -53,6 +55,7 @@ def create_hparams():
         learning_rate=FLAGS.learning_rate,
         learning_rate_decay_factor=FLAGS.learning_rate_decay_factor,
         max_gradient_norm=FLAGS.max_gradient_norm,
+        mode=FLAGS.mode,
         num_layers=FLAGS.num_layers,
         num_samples=FLAGS.num_samples,
         steps_per_checkpoint=FLAGS.steps_per_checkpoint)

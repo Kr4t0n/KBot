@@ -6,7 +6,7 @@ import random
 import numpy as np
 import tensorflow as tf
 
-from . import data_util
+import data_utils
 
 __all__ = ["Model"]
 
@@ -61,11 +61,11 @@ class Model(object):
             b = tf.get_variable('proj_b', [self.tgt_vocab_size])
             self.output_projection = (w, b)
 
-            def _sampled_softmax_loss(inputs, labels):
+            def _sampled_softmax_loss(logits, labels):
                 labels = tf.reshape(labels, [-1, 1])
                 return tf.nn.sampled_softmax_loss(weights=w_t,
                                                   biases=b,
-                                                  inputs=inputs,
+                                                  inputs=logits,
                                                   labels=labels,
                                                   num_sampled=self.num_samples,
                                                   num_classes=self.tgt_vocab_size)
@@ -85,6 +85,18 @@ class Model(object):
 
         # Create seq2seq model
         def seq2seq_model(encoder_inputs, decoder_inputs, do_decode):
+            if self.cell_type == 'GRU':
+                setattr(tf.contrib.rnn.GRUCell,
+                        '__deepcopy__', lambda self, _: self)
+            elif self.cell_type == 'LSTM':
+                setattr(tf.contrib.rnn.BasicLSTMCell,
+                        '__deepcopy__', lambda self, _: self)
+            else:
+                # TODO assert different cell type
+                setattr(tf.contrib.rnn.GRUCell,
+                        '__deepcopy__', lambda self, _: self)
+            setattr(tf.contrib.rnn.MultiRNNCell,
+                    '__deepcopy__', lambda self, _: self)
             return tf.contrib.legacy_seq2seq.embedding_attention_seq2seq(
                 encoder_inputs, decoder_inputs, self.cell,
                 num_encoder_symbols=self.src_vocab_size,
@@ -142,7 +154,7 @@ class Model(object):
                     zip(clipped_gradients, trainable_variables),
                     global_step=self.global_step))
 
-        self.saver = tf.train.Saver(tf.all_variabels())
+        self.saver = tf.train.Saver()
 
     def run_step(self,
                  session,
@@ -193,13 +205,13 @@ class Model(object):
             encoder_input, decoder_input = random.choice(data[bucket_id])
 
             # Encoder inputs are padded and then reversed
-            encoder_pad = [data_util.PAD_ID] * \
-                (encoder_size - len(encoder_inputs))
+            encoder_pad = [data_utils.PAD_ID] * \
+                (encoder_size - len(encoder_input))
             encoder_inputs.append(list(reversed(encoder_input + encoder_pad)))
 
             # Decoder inputs are padded
-            decoder_pad = [data_util.PAD_ID] * \
-                (decoder_size - len(decoder_inputs))
+            decoder_pad = [data_utils.PAD_ID] * \
+                (decoder_size - len(decoder_input))
             decoder_inputs.append(decoder_input + decoder_pad)
 
         # Reconstruct the input to become batch major
@@ -223,8 +235,8 @@ class Model(object):
                 if length_idx < decoder_size - 1:
                     target = decoder_inputs[batch_idx][length_idx + 1]
                 if length_idx == decoder_size - 1 or \
-                        target == data_util.PAD_ID:
+                        target == data_utils.PAD_ID:
                     batch_weight[batch_idx] = 0.0
             batch_weights.append(batch_weight)
 
-    return batch_encoder_inputs, batch_decoder_inputs, batch_weights
+        return batch_encoder_inputs, batch_decoder_inputs, batch_weights
