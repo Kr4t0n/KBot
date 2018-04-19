@@ -3,13 +3,10 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
-from collections import namedtuple
 
-"""
-
-    self.src_vocab_size = hparams.src_vocab_size
-    self.tgt_vocab_size = hparams.tgt_vocab_size
-"""
+# CAUTIONS:
+# hparams.src_vocab_size is added dynamically inside chatbot.py
+# hparams.tgt_vocab_size is added dynamically inside chatbot.py
 
 # Model Hyperparameter
 tf.flags.DEFINE_integer("hidden_layer_size", 512,
@@ -30,21 +27,6 @@ tf.flags.DEFINE_integer("steps_per_checkpoint", 100,
 tf.flags.DEFINE_string("mode", "train", "Chatbot running mode")
 
 FLAGS = tf.flags.FLAGS
-
-HParams = namedtuple(
-    "HParams",
-    [
-        "batch_size",
-        "cell_type",
-        "hidden_layer_size",
-        "learning_rate",
-        "learning_rate_decay_factor",
-        "max_gradient_norm",
-        "mode",
-        "num_layers",
-        "num_samples",
-        "steps_per_checkpoint"
-    ])
 
 
 def create_hparams():

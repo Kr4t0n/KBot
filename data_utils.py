@@ -1,3 +1,12 @@
+# This data_utils.py file is modified from Google Tensorflow
+# old version of model of rnn.translate.seq2seq_model
+# You can find the original file from Google's Tensorflow
+# Github repository history
+#
+# This file has added some useful utility functions to
+# the needs of preprocessing data, you can tweet the data
+# utility functions with your own needs
+
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -22,8 +31,15 @@ END_ID = 3
 
 BUCKETS = [(5, 10), (10, 15), (20, 25), (40, 50)]
 
+# The following functions are used to retrieve the
+# Cornell Movie-Dialogs Corpus dataset
+
 
 def get_lineid_content():
+    """ Get the pair of lineID and content
+        movie_lines.txt file includes the corresponding
+        conversation content to each lineID
+    """
     lineid_content = {}
     lines_file_path = os.path.join(DATA_PATH + MOVIE_LINES_FILE)
 
@@ -32,6 +48,7 @@ def get_lineid_content():
         # A correct formed line includes five sections
         # The first section is lineID
         # The last section is line content
+        # Here we only need lineID and content
 
         for line in f:
             line_sections = line.split(' +++$+++ ')
@@ -44,13 +61,16 @@ def get_lineid_content():
 
 
 def get_convos():
+    """ Reconstruct the movie conversation into pair of dialog
+        into list of ordered lineIDs
+    """
     convos = []
     convos_file_path = os.path.join(DATA_PATH, MOVIE_CONVOS_FILE)
 
     with open(convos_file_path, 'r', errors='ignore') as f:
         # +++$+++ is used to split the section in a single line
         # A correct formed line includes four sections
-        # The last section is lineIDs in each conversation
+        # The last section is list of lineIDs in each conversation
 
         for line in f:
             line_sections = line.split(' +++$+++ ')
@@ -69,9 +89,13 @@ def get_train_dev_test_set(lineid_content, convos):
         for index, lineid in enumerate(each_convo[:-1]):
             # Input and output data should be roughly less than 50 words
             # And we hope that output length is less than 2 times of input
+            # Cause when output length is bigger than 2 times of input
+            # There's highly chance that it makes no sense to infer the output
 
-            input_length = len(lineid_content[each_convo[index]].split(' '))
-            output_length = len(lineid_content[each_convo[index]].split(' '))
+            input_length = len(
+                lineid_content[each_convo[index]].split(' '))
+            output_length = len(
+                lineid_content[each_convo[index + 1]].split(' '))
 
             if input_length < 50 and output_length < 50 and \
                     output_length < 2 * input_length:
@@ -80,11 +104,12 @@ def get_train_dev_test_set(lineid_content, convos):
             else:
                 continue
 
+    # Make sure than the length of input_set is equal to output_set
+    # Since every input sentence corresponds to one output response
     assert len(input_set) == len(output_set)
 
     # Split the pair into train set and test set
     # Train set : Dev set : Test set = 7 : 2 : 1
-
     filenames = ['train.in', 'train.ou',
                  'dev.in', 'dev.ou', 'test.in', 'test.ou']
     file_pool = []
@@ -118,6 +143,7 @@ def get_train_dev_test_set(lineid_content, convos):
 
 def basic_tokenizer(line, normalize_digits=False):
     # Split a single line into words with tokenizer
+    # This basic tokenizer is provided by Google's translate project
     line = re.sub('<u>', '', line)
     line = re.sub('</u>', '', line)
     line = re.sub('\[', '', line)
@@ -155,7 +181,6 @@ def construct_vocab_file(filename):
         f.write('<unk>' + '\n')
         f.write('<s>' + '\n')
         f.write('</s>' + '\n')
-        vocab_count = 3
         for word in vocab_sorted:
             # Only record the words over particular count threshold
             # Otherwise we will treat the rare words as <unk>
@@ -163,10 +188,16 @@ def construct_vocab_file(filename):
                 break
             else:
                 f.write(word[0] + '\n')
-            vocab_count += 1
+
+# The following functions are modified from Google's translate
+# project of data_utils.py file
 
 
 def initialize_vocab(vocab_path):
+    """ Initialize for reading vocab
+        Return the dictionary of vacab to wordID and
+        a reverse vocab for decoding output
+    """
     rev_vocab = []
 
     with open(os.path.join(DATA_PATH + vocab_path), 'r') as f:
@@ -179,6 +210,9 @@ def initialize_vocab(vocab_path):
 
 
 def sentence_to_token_ids(sentence, vocab):
+    """ Reconstruct a word-based sentence into a
+        wordIDs-based sentence
+    """
     return [vocab.get(token, UNK_ID) for token in basic_tokenizer(sentence)]
 
 
@@ -186,6 +220,11 @@ def data_to_token_ids(src_path,
                       tgt_path,
                       vocab_path,
                       type):
+    """ Reconstruct a word-based sentences dataset into a
+        wordID-based sentences dataset
+        For each line in the source dataset, we simply apply
+        sentence_to_token_ids to it
+    """
     vocab, _ = initialize_vocab(vocab_path)
     with open(src_path, 'r') as src_file:
         with open(tgt_path, 'w+') as tgt_file:
@@ -206,6 +245,11 @@ def data_to_token_ids(src_path,
 
 
 def load_data(encoder_path, decoder_path, max_size=None):
+    """ Load data from dataset
+        Reconstruct the dataset into len(data_sets) = len(BUCKETS)
+        each element inside data_sets is pairs of [encoder, decoder]
+        encoder and decoder are represented as wordIDs
+    """
     encoder_file = open(os.path.join(DATA_PATH, encoder_path), 'r')
     decoder_file = open(os.path.join(DATA_PATH, decoder_path), 'r')
     encoder, decoder = encoder_file.readline(), decoder_file.readline()
@@ -217,6 +261,7 @@ def load_data(encoder_path, decoder_path, max_size=None):
         decoder_ids = [int(id) for id in decoder.split()]
 
         for bucket_id, (encoder_size, decoder_size) in enumerate(BUCKETS):
+            # To insert encoder and decoder into the most proper size of bucket
             if len(encoder_ids) < encoder_size and \
                     len(decoder_ids) < decoder_size:
                 data_sets[bucket_id].append([encoder_ids, decoder_ids])
@@ -227,6 +272,9 @@ def load_data(encoder_path, decoder_path, max_size=None):
 
 
 def get_vocab_size(vocab_path):
+    """ Get the vocab size, contribute to dynamically
+        add vocab_size into hyper parameters
+    """
     with open(os.path.join(DATA_PATH, vocab_path), 'r') as f:
         vocab_size = sum(1 for _ in f)
 
@@ -234,6 +282,9 @@ def get_vocab_size(vocab_path):
 
 
 def data_preprocessing():
+    """ Data preprocessing procedure, mainly for process
+        Cornell Movie-Dialogs Corpus
+    """
     lineid_content = get_lineid_content()
     print('Read movie_lines.txt file complete...')
     convos = get_convos()
@@ -246,6 +297,10 @@ def data_preprocessing():
 
 
 def data_tokenizing():
+    """ Reconstruct train.in, dev.in, test.in
+                    train.ou, dev.ou, test.ou
+        into wordIDs based sentences
+    """
     data_to_token_ids(src_path=os.path.join(DATA_PATH, 'train.in'),
                       tgt_path=os.path.join(DATA_PATH, 'train_ids.in'),
                       vocab_path=os.path.join(DATA_PATH, 'vocab.in'),
